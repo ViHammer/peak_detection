@@ -301,8 +301,10 @@ def image_deflation(image, peaks, w_s):
 
         params = xc_rel, yc_rel, width, I, 0
         deflated_peak = gauss_continuous(params, w_s)
-        d_image[low_x:low_x + w_s,
-                low_y:low_y + w_s] -= deflated_peak.reshape((w_s, w_s))
+        #d_image[low_x:low_x + w_s,
+        #        low_y:low_y + w_s] -= deflated_peak.reshape((w_s, w_s))
+        d_image[low_x:low_x + w_s, 
+                 low_y:low_y + w_s] = d_image[low_x:low_x + w_s, low_y:low_y + w_s].astype("float") - deflated_peak.reshape((w_s, w_s))
     return d_image
 
 
