@@ -149,13 +149,15 @@ def find_stack_peaks(stacks,
     try:
         # Launch peak_detection
         if parallel:
+            print("PARALLEL NOT FIXED YET")
             results = pool.imap_unordered(find_gaussian_peaks, arguments)
         else:
             results = list(map(find_gaussian_peaks, arguments))
 
         # Get unordered results and log progress
         for i in range(nb_stacks):
-            result = results.next()
+            #result = results.next()
+            result = next(results)
             if show_progress:
                 pprogress((i + 1) / nb_stacks * 100, "%i peaks on stack %i" % (len(result[1]), result[0]))
             elif verbose:
