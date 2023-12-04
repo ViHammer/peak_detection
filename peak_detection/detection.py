@@ -143,7 +143,7 @@ def find_stack_peaks(stacks,
     i = 0
 
     # Build arguments list
-    arguments = itertools.izip(
+    arguments = zip(
         stacks, itertools.repeat(detection_parameters), range(nb_stacks))
 
     try:
