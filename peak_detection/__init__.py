@@ -1,3 +1,14 @@
+# -*- coding: utf-8 -*-
+
+"""
+Python implementation of the Gaussian peak detection described in Segré et
+al. Nature Methods (2008). See https://github.com/bnoi/peak_detection for
+details.
+"""
+
+__version__ = "1.0"
+
+
 import warnings
 warnings.filterwarnings("ignore")
 
