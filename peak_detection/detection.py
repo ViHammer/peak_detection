@@ -151,7 +151,7 @@ def find_stack_peaks(stacks,
         if parallel:
             results = pool.imap_unordered(find_gaussian_peaks, arguments)
         else:
-            results = map(find_gaussian_peaks, arguments)
+            results = list(map(find_gaussian_peaks, arguments))
 
         # Get unordered results and log progress
         for i in range(nb_stacks):
