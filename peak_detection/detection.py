@@ -85,14 +85,14 @@ def find_stack_peaks(stacks,
                      **detection_parameters):
     """
     Finds the Gaussian peaks for all the pages in a multipage tif.
-
+    
     Parameters
     ----------
     stacks : a TiffFile instance from Christoph Groethke's tifffile.py
     parallel : boolean
         If parallel != True, peak_detection try to use several core to process
         pages.
-
+    
     Return
     -------
     masked_peaks : masked array
@@ -102,12 +102,12 @@ def find_stack_peaks(stacks,
          For each peak (x, y, w, I) are given, where (x, y) is the position
          in the image, w the width of the gaussian spot and I the
          (background corrected) intensity.
-
+    
     See Also
     --------
     find_gaussian_peaks for details on the detection method
     """
-
+    
     # Array shape preprocessing: work only with 3 dimensions array
     original_shape = stacks.shape
     if len(original_shape) == 4:
@@ -115,37 +115,37 @@ def find_stack_peaks(stacks,
         shape_name = shape_label[:2]
     else:
         shape_name = shape_label[:1]
-
+    
     # Check wether function is run from ipython and disable parallel feature if
     # is the case because python multiprocessing module is not yet compatible
     # with ipython.
     # if in_ipython():
         # parallel = False
     nb_stacks = len(stacks)
-
+    
     if parallel:
-
+    
         # Snippet to allow multiprocessing while importing
         # module such as numpy (only needed on linux)
         if os.name == 'posix':
             os.system("taskset -p 0xff %d" % os.getpid())
-
+        
         def init_worker():
             import signal
             signal.signal(signal.SIGINT, signal.SIG_IGN)
-
+        
         ncore = multiprocessing.cpu_count() + 1
         log.info('Parallel mode enabled: %i cores will be used to process %i stacks' %
                  (ncore, nb_stacks))
         pool = multiprocessing.Pool(processes=ncore, initializer=init_worker)
-
+    
     all_peaks = []
     i = 0
-
+    
     # Build arguments list
     arguments = zip(
         stacks, itertools.repeat(detection_parameters), range(nb_stacks))
-
+    
     try:
         # Launch peak_detection
         if parallel:
@@ -153,8 +153,9 @@ def find_stack_peaks(stacks,
             results = pool.imap_unordered(find_gaussian_peaks, arguments)
         else:
             results = list(map(find_gaussian_peaks, arguments))
-
+        
         # Get unordered results and log progress
+        results = iter(results)
         for i in range(nb_stacks):
             #result = results.next()
             result = next(results)
@@ -164,58 +165,63 @@ def find_stack_peaks(stacks,
                 log.info('Detection done for stack number %i: %i peaks detected (%i/%i - %i%%)' %
                      (result[0], len(result[1]), i + 1, nb_stacks, ((i + 1) * 100 / nb_stacks)))
             all_peaks.append(result)
-
+        
         if show_progress:
             pprogress(-1)
-
+    
     except KeyboardInterrupt:
         pool.terminate()
         pool.join()
         raise CanceledByUserException(
             'Peak detection has been canceled by user')
-
+    
     # Sort peaks and remove index used to sort
     log.info('Reordering stacks')
     all_peaks.sort(key=lambda x: x[0])
     all_peaks = [x[1] for x in all_peaks]
-
+    
     # Pre processing peaks
     index = []
     peaks = []
-
+    
     for t, peak in enumerate(all_peaks):
         if peak.any():
             for i, p in enumerate(peak):
                 index.append((t, i))
                 peaks.append(p)
-
+    
     if not peaks:
         raise NoPeaksDetectedException
-
+    
     peaks = pd.DataFrame(peaks, columns=['x', 'y', 'w', 'I'], dtype='float')
     peaks.index = pd.MultiIndex.from_tuples(index, names=['stacks', 'id'])
-
+    
     # Reshape DataFrame to fit with original_shape
     # Shape is given in DataFrame columns
     log.info('Add original shape to DataFrame as columns. Shape = %s' %
              str(original_shape))
-
+    
     if len(original_shape) == 4:
         index = list(np.ndindex(original_shape[:2]))
     else:
         index = list(np.ndindex(original_shape[:1]))
-
+    
     stacks_id = peaks.index.get_level_values('stacks')
-
+    
     i_name = shape_label[0]
     i_col = map(lambda x: index[x][0], stacks_id)
+    print(i_col)
+    i_col = list(i_col)
+    print(len(i_col))
+    print(i_col)
+    
     peaks[i_name] = i_col
-
+    
     if len(original_shape) == 4:
         j_name = shape_label[1]
         j_col = map(lambda x: index[x][1], stacks_id)
-        peaks[j_name] = j_col
-
+        peaks[j_name] = list(j_col)
+    
     log.info('Detection is done')
     return peaks
 
@@ -303,10 +309,10 @@ def image_deflation(image, peaks, w_s):
 
         params = xc_rel, yc_rel, width, I, 0
         deflated_peak = gauss_continuous(params, w_s)
-        #d_image[low_x:low_x + w_s,
-        #        low_y:low_y + w_s] -= deflated_peak.reshape((w_s, w_s))
-        d_image[low_x:low_x + w_s, 
-                 low_y:low_y + w_s] = d_image[low_x:low_x + w_s, low_y:low_y + w_s].astype("float") - deflated_peak.reshape((w_s, w_s))
+        d_image = d_image.astype("float")
+        d_image[low_x:low_x + w_s,
+                low_y:low_y + w_s] -= deflated_peak.reshape((w_s, w_s))
+        
     return d_image
 
 
